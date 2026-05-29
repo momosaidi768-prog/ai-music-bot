@@ -1,62 +1,84 @@
-import time
+import random
+import os
 import requests
-from playwright.sync_api import sync_playwright
 
+# ================= TELEGRAM =================
 TOKEN = "8202293986:AAFEmxYfIbVn6q27j0ibvEOElQF4Y68VPzQ"
 CHAT_ID = "6675176280"
 
-PROMPTS = [
-    "Afrobeat summer vibe, catchy rhythm, male vocal, emotional chorus",
-    "Modern Moroccan Rai, emotional male voice, romantic fusion beat",
-    "Afro-pop DYSTINCT style, catchy hook, danceable vibe"
+# ================= STYLES =================
+styles = {
+    "afro": "Afrobeat, summer vibe, catchy rhythm, male vocal, danceable",
+    "rai": "Modern Moroccan Rai, emotional male voice, romantic fusion beat",
+    "dystinct": "Afro-pop / Rai fusion, catchy hook, emotional, danceable"
+}
+
+lyrics_pool = [
+"""Ya lili ya lila
+this night is ours
+feel the rhythm flow
+don't let me go""",
+
+"""Ya habibi stay with me
+فهاد الليل غير أنت
+music in my soul
+and I feel alive""",
+
+"""Every night I think about you
+قلبي باقي معاك
+under the moonlight
+we shine so bright"""
 ]
 
-def generate_prompt():
-    import random
-    return random.choice(PROMPTS)
+# ================= GENERATE =================
+def generate_content():
+    style_key = random.choice(list(styles.keys()))
+    lyrics = random.choice(lyrics_pool)
+    prompt = styles[style_key]
 
-# ================= SUNO AUTOMATION =================
-def run_suno(prompt):
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        page = browser.new_page()
+    text = f"""
+🎧 STYLE: {style_key.upper()}
 
-        print("🌐 Opening Suno...")
-        page.goto("https://suno.com")
-
-        print("⏳ WAIT: login manually if needed")
-        time.sleep(20)  # تعطيك وقت تدخل للحساب
-
-        print("🎤 Writing prompt...")
-        page.fill("textarea", prompt)
-
-        print("🚀 Clicking generate...")
-        page.keyboard.press("Enter")
-
-        print("⏳ Wait for generation...")
-        time.sleep(60)  # وقت توليد الأغنية
-
-        print("✅ Done - download song manually")
-        browser.close()
-
-# ================= TELEGRAM =================
-def send_message(text):
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    requests.post(url, data={"chat_id": CHAT_ID, "text": text})
-
-# ================= MAIN =================
-def run():
-    prompt = generate_prompt()
-
-    send_message(f"""
-🎧 SUNO AUTO BOT
+🎤 LYRICS:
+{lyrics}
 
 🔥 PROMPT:
 {prompt}
+"""
 
-➡️ Go to Suno and check result
-""")
+    print(text)
 
-    run_suno(prompt)
+    return style_key, lyrics, prompt
 
-run()
+# ================= CREATE VIDEO =================
+def create_video():
+    # ffmpeg: image + audio => video
+    os.system(
+        "ffmpeg -y -loop 1 -i bg.jpg -i audio.mp3 "
+        "-c:v libx264 -c:a aac -shortest -pix_fmt yuv420p final.mp4"
+    )
+
+# ================= SEND TELEGRAM =================
+def send_video():
+    url = f"https://api.telegram.org/bot{TOKEN}/sendVideo"
+
+    with open("final.mp4", "rb") as video:
+        requests.post(
+            url,
+            data={"chat_id": CHAT_ID},
+            files={"video": video}
+        )
+
+# ================= MAIN =================
+def main():
+    generate_content()
+
+    # video build
+    create_video()
+
+    # send to Telegram
+    send_video()
+
+    print("DONE ✔")
+
+main()
