@@ -8,21 +8,19 @@ CHAT_ID = "6675176280"
 
 # ================= STYLES =================
 styles = {
-    "afro": "Afrobeat, summer vibe, catchy rhythm, male vocal, danceable",
-    "rai": "Modern Moroccan Rai, emotional male voice, romantic fusion beat",
+    "afro": "Afrobeat, summer vibe, catchy rhythm, male vocal",
+    "rai": "Modern Moroccan Rai, emotional male voice, romantic",
     "dystinct": "Afro-pop / Rai fusion, catchy hook, emotional, danceable"
 }
 
 lyrics_pool = [
 """Ya lili ya lila
 this night is ours
-feel the rhythm flow
-don't let me go""",
+feel the rhythm flow""",
 
 """Ya habibi stay with me
 فهاد الليل غير أنت
-music in my soul
-and I feel alive""",
+music in my soul""",
 
 """Every night I think about you
 قلبي باقي معاك
@@ -30,55 +28,53 @@ under the moonlight
 we shine so bright"""
 ]
 
-# ================= GENERATE =================
+# ================= GENERATE CONTENT =================
 def generate_content():
     style_key = random.choice(list(styles.keys()))
     lyrics = random.choice(lyrics_pool)
     prompt = styles[style_key]
 
-    text = f"""
-🎧 STYLE: {style_key.upper()}
-
-🎤 LYRICS:
-{lyrics}
-
-🔥 PROMPT:
-{prompt}
-"""
-
-    print(text)
+    print(f"STYLE: {style_key}")
+    print(f"LYRICS: {lyrics}")
+    print(f"PROMPT: {prompt}")
 
     return style_key, lyrics, prompt
 
 # ================= CREATE VIDEO =================
 def create_video():
-    # ffmpeg: image + audio => video
-    os.system(
+    cmd = (
         "ffmpeg -y -loop 1 -i bg.jpg -i audio.mp3 "
         "-c:v libx264 -c:a aac -shortest -pix_fmt yuv420p final.mp4"
     )
 
-# ================= SEND TELEGRAM =================
+    print("Running ffmpeg...")
+    os.system(cmd)
+
+    print("Video created ✔")
+
+# ================= SEND VIDEO =================
 def send_video():
+    if not os.path.exists("final.mp4"):
+        print("❌ final.mp4 not found")
+        return
+
     url = f"https://api.telegram.org/bot{TOKEN}/sendVideo"
 
     with open("final.mp4", "rb") as video:
-        requests.post(
+        r = requests.post(
             url,
             data={"chat_id": CHAT_ID},
             files={"video": video}
         )
 
+    print("Telegram response:", r.text)
+
 # ================= MAIN =================
 def main():
-    generate_content()
+    style, lyrics, prompt = generate_content()
 
-    # video build
     create_video()
 
-    # send to Telegram
     send_video()
-
-    print("DONE ✔")
 
 main()
